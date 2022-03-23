@@ -6,11 +6,11 @@ max_trajectory = 1000
 check_num = 4
 reward1 = -2
 reward2 = 0.5
-dataset_name = 'ann'
+dataset_name = 'cov'
 strategy_distribution = [0.3, 0.3, 0.4]
-target_anomaly_classes = [1, 4, 2]
+target_anomaly_classes = [2, 4, 2, 2]
 refresh_interval = 500
-seed = 1
+seed = 2
 normalization = True
 
 
@@ -33,7 +33,7 @@ class Config():
 
         # main
         self.seed = seed
-        self.num_episodes_to_run = 20
+        self.num_episodes_to_run = 10
         self.standard_deviation_results = 1.0
         self.runs_per_agent = 10
         self.use_GPU = True
@@ -42,7 +42,7 @@ class Config():
         self.hyperparameters = {
             "Actor_Critic_Agents": {
                 "Actor": {
-                    "learning_rate": 0.002,
+                    "learning_rate": 0.005,
                     "linear_hidden_units": [64, 32],
                     "final_layer_activation": "Softmax",
                     "batch_norm": False,
@@ -51,11 +51,11 @@ class Config():
                     "initialiser": "Xavier"
                 },
                 "Critic": {
-                    "learning_rate": 0.002,
+                    "learning_rate": 0.005,
                     "linear_hidden_units": [64, 32],
                     "final_layer_activation": None,
                     "batch_norm": False,
-                    "buffer_size": 2000,
+                    "buffer_size": 5000,
                     "tau": 0.2,
                     "gradient_clipping_norm": 5,
                     "initialiser": "Xavier"

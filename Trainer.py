@@ -8,7 +8,7 @@ class Trainer(object):
     def __init__(self, config, agent):
         self.config = config
         self.agent = agent
-        env_name = "Anomaly_dectection"
+        env_name = config.dataset_name
         self.logger = Logger("logs", prefix=env_name + "-" + "", print_to_terminal=True)
         self.logger.log_str("logging to {}".format(self.logger.log_path))
         self.logger.log_str(config.__dict__)

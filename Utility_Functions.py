@@ -297,3 +297,10 @@ class OU_Noise(object):
         dx = self.theta * (self.mu - self.state) + self.sigma * np.array([np.random.normal() for _ in range(len(self.state))])
         self.state += dx
         return self.state
+
+
+def set_global_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
