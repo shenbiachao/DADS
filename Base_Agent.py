@@ -1,17 +1,15 @@
-import os
 import gym
-import random
 import numpy as np
 import torch
 import time
-from Utility_Functions import NN
+from nn_builder.pytorch.NN import NN
+from Utility_Functions import set_random_seeds
 
 
 class Base_Agent(object):
-    def __init__(self, config):
+    def __init__(self, config, environment):
         self.config = config
-        self.set_random_seeds(config.seed)
-        self.environment = config.environment
+        self.environment = environment
         self.action_types = "DISCRETE" if self.environment.action_space.dtype == np.int64 else "CONTINUOUS"
         self.action_size = int(self.get_action_size())
         self.config.action_size = self.action_size
@@ -29,6 +27,9 @@ class Base_Agent(object):
         """Takes a step in the game. This method must be overriden by any agent"""
         raise ValueError("Step needs to be implemented by the agent")
 
+    def eval(self):
+        raise ValueError("Eval needs to be implemented by the agent")
+
     def get_action_size(self):
         """Gets the action_size for the gym env into the correct shape for a neural network"""
         if "overwrite_action_size" in self.config.__dict__: return self.config.overwrite_action_size
@@ -45,24 +46,8 @@ class Base_Agent(object):
         else:
             return random_state.size()[0]
 
-    def set_random_seeds(self, random_seed):
-        """Sets all possible random seeds so results can be reproduced"""
-        os.environ['PYTHONHASHSEED'] = str(random_seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-        torch.manual_seed(random_seed)
-        # tf.set_random_seed(random_seed)
-        random.seed(random_seed)
-        np.random.seed(random_seed)
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(random_seed)
-            torch.cuda.manual_seed(random_seed)
-        if hasattr(gym.spaces, 'prng'):
-            gym.spaces.prng.seed(random_seed)
-
     def reset_game(self):
         """Resets the game information so we are ready to play a new episode"""
-        self.environment.seed(self.config.seed)
         self.state = self.environment.reset()
         self.next_state = None
         self.action = None
@@ -75,9 +60,10 @@ class Base_Agent(object):
         start = time.time()
         # self.environment.plot()
         while self.episode_number < self.config.num_episodes_to_run:
+            set_random_seeds(self.config.seeds[self.episode_number])
             self.reset_game()
             self.step()
-            auc_roc, auc_pr = self.environment.evaluate()
+            auc_roc, auc_pr = self.eval()
             res = "Episode {}: auc_roc {:.03f} auc_pr {:.03f}".format(self.episode_number, auc_roc,
                                                                       auc_pr) + "\nanomaly: {} temp: {} unlabeled: {}".format(
                 len(self.environment.dataset_anomaly), len(self.environment.dataset_temp),
@@ -94,7 +80,6 @@ class Base_Agent(object):
         """Conducts an action in the environment"""
         self.next_state, self.reward, self.done, _ = self.environment.step(action)
         self.total_episode_score_so_far += self.reward
-        if self.hyperparameters["clip_rewards"]: self.reward =  max(min(self.reward, 1.0), -1.0)
 
     def enough_experiences_to_learn_from(self):
         """Boolean indicated whether there are enough experiences in the memory buffer to learn from"""
@@ -122,12 +107,10 @@ class Base_Agent(object):
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
 
-    def create_NN(self, input_dim, output_dim, key_to_use=None, override_seed=None, hyperparameters=None):
+    def create_NN(self, input_dim, output_dim, key_to_use=None, hyperparameters=None):
         """Creates a neural network for the agents to use"""
         if hyperparameters is None: hyperparameters = self.hyperparameters
         if key_to_use: hyperparameters = hyperparameters[key_to_use]
-        if override_seed: seed = override_seed
-        else: seed = self.config.seed
 
         default_hyperparameter_choices = {"output_activation": None, "hidden_activations": "relu", "dropout": 0.0,
                                           "initialiser": "default", "batch_norm": False,
@@ -143,8 +126,7 @@ class Base_Agent(object):
                   batch_norm=hyperparameters["batch_norm"], dropout=hyperparameters["dropout"],
                   hidden_activations=hyperparameters["hidden_activations"], initialiser=hyperparameters["initialiser"],
                   columns_of_data_to_be_embedded=hyperparameters["columns_of_data_to_be_embedded"],
-                  embedding_dimensions=hyperparameters["embedding_dimensions"], y_range=hyperparameters["y_range"],
-                  random_seed=seed).to(self.device)
+                  embedding_dimensions=hyperparameters["embedding_dimensions"], y_range=hyperparameters["y_range"]).to(self.device)
 
     @staticmethod
     def copy_model_over(from_model, to_model):

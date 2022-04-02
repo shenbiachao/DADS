@@ -4,23 +4,19 @@ import torch.nn.functional as F
 import numpy as np
 from Base_Agent import Base_Agent
 from Utility_Functions import Replay_Buffer
-from SAC import SAC
 from Utility_Functions import create_actor_distribution
 
 
-class SAC_Discrete(SAC):
-    """The Soft Actor Critic for discrete actions. It inherits from SAC for continuous actions and only changes a few
-    methods."""
+class SAC_Discrete(Base_Agent):
     agent_name = "SAC"
-
-    def __init__(self, config):
-        Base_Agent.__init__(self, config)
+    def __init__(self, config, environment):
+        Base_Agent.__init__(self, config, environment)
         assert self.action_types == "DISCRETE", "Action types must be discrete. Use SAC instead for continuous actions"
         assert self.config.hyperparameters["Actor"]["final_layer_activation"] == "Softmax", "Final actor layer must be softmax"
         self.hyperparameters = config.hyperparameters
         self.critic_local = self.create_NN(input_dim=self.state_size, output_dim=self.action_size, key_to_use="Critic")
         self.critic_local_2 = self.create_NN(input_dim=self.state_size, output_dim=self.action_size,
-                                           key_to_use="Critic", override_seed=self.config.seed + 1)
+                                           key_to_use="Critic")
         self.critic_optimizer = torch.optim.Adam(self.critic_local.parameters(),
                                                  lr=self.hyperparameters["Critic"]["learning_rate"], eps=1e-4)
         self.critic_optimizer_2 = torch.optim.Adam(self.critic_local_2.parameters(),
@@ -31,8 +27,8 @@ class SAC_Discrete(SAC):
                                             key_to_use="Critic")
         Base_Agent.copy_model_over(self.critic_local, self.critic_target)
         Base_Agent.copy_model_over(self.critic_local_2, self.critic_target_2)
-        self.memory = Replay_Buffer(self.hyperparameters["Critic"]["buffer_size"], self.hyperparameters["batch_size"],
-                                    self.config.seed, device=self.device)
+        self.memory = Replay_Buffer(self.hyperparameters["Critic"]["buffer_size"],
+                                    self.hyperparameters["batch_size"], device=self.device)
 
         self.actor_local = self.create_NN(input_dim=self.state_size, output_dim=self.action_size, key_to_use="Actor")
         self.actor_optimizer = torch.optim.Adam(self.actor_local.parameters(),
@@ -46,8 +42,6 @@ class SAC_Discrete(SAC):
             self.alpha_optim = Adam([self.log_alpha], lr=self.hyperparameters["Actor"]["learning_rate"], eps=1e-4)
         else:
             self.alpha = self.hyperparameters["entropy_term_weight"]
-        assert not self.hyperparameters["add_extra_noise"], "There is no add extra noise option for the discrete version of SAC at moment"
-        self.add_extra_noise = False
 
     def produce_action_and_action_info(self, state):
         """Given the state, produces an action, the probability of the action, the log probability of the action, and
@@ -61,6 +55,76 @@ class SAC_Discrete(SAC):
         z = z.float() * 1e-8
         log_action_probabilities = torch.log(action_probabilities + z)
         return action, (action_probabilities, log_action_probabilities), max_probability_action
+
+    def reset_game(self):
+        """Resets the game information so we are ready to play a new episode"""
+        Base_Agent.reset_game(self)
+
+    def step(self):
+        """Runs an episode on the game, saving the experience and running a learning step if appropriate"""
+        self.episode_step_number_val = 0
+        while not self.done:
+            self.episode_step_number_val += 1
+            self.action = self.pick_action()
+            self.conduct_action(self.action)
+            if self.time_for_critic_and_actor_to_learn():
+                for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
+                    self.learn()
+            mask = False if self.episode_step_number_val >= self.environment._max_episode_steps else self.done
+            self.save_experience(experience=(self.state, self.action, self.reward, self.next_state, mask))
+            self.state = self.next_state
+            self.global_step_number += 1
+        self.episode_number += 1
+
+    def pick_action(self, state=None):
+        """Picks an action using one of three methods: 1) Randomly if we haven't passed a certain number of steps,
+         2) Using the actor in evaluation mode if eval_ep is True  3) Using the actor in training mode if eval_ep is False.
+         The difference between evaluation and training mode is that training mode does more exploration"""
+        if state is None: state = self.state
+        if self.global_step_number < self.hyperparameters["min_steps_before_learning"]:
+            action = self.environment.action_space.sample()
+            # print("Picking random action ", action)
+        else:
+            action = self.actor_pick_action(state=state)
+        return action
+
+    def actor_pick_action(self, state=None, eval=False):
+        """Uses actor to pick an action in one of two ways: 1) If eval = False and we aren't in eval mode then it picks
+        an action that has partly been randomly sampled 2) If eval = True then we pick the action that comes directly
+        from the network and so did not involve any random sampling"""
+        if state is None: state = self.state
+        if len(state.shape) == 1: state = state.unsqueeze(0)
+        if eval == False:
+            action, _, _ = self.produce_action_and_action_info(state)
+        else:
+            with torch.no_grad():
+                _, z, action = self.produce_action_and_action_info(state)
+        action = action.detach().cpu().numpy()
+        return action[0]
+
+    def time_for_critic_and_actor_to_learn(self):
+        """Returns boolean indicating whether there are enough experiences to learn from and it is time to learn for the
+        actor and critic"""
+        return self.global_step_number > self.hyperparameters["min_steps_before_learning"] and \
+               self.enough_experiences_to_learn_from() and self.global_step_number % self.hyperparameters[
+                   "update_every_n_steps"] == 0
+
+    def learn(self):
+        """Runs a learning iteration for the actor, both critics and (if specified) the temperature parameter"""
+        state_batch, action_batch, reward_batch, next_state_batch, mask_batch = self.sample_experiences()
+        qf1_loss, qf2_loss = self.calculate_critic_losses(state_batch, action_batch, reward_batch, next_state_batch,
+                                                          mask_batch)
+        self.update_critic_parameters(qf1_loss, qf2_loss)
+
+        policy_loss, log_pi = self.calculate_actor_loss(state_batch)
+        if self.automatic_entropy_tuning:
+            alpha_loss = self.calculate_entropy_tuning_loss(log_pi)
+        else:
+            alpha_loss = None
+        self.update_actor_parameters(policy_loss, alpha_loss)
+
+    def sample_experiences(self):
+        return self.memory.sample()
 
     def calculate_critic_losses(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch):
         """Calculates the losses for the two critics. This is the ordinary Q-learning loss except the additional entropy
@@ -89,3 +153,32 @@ class SAC_Discrete(SAC):
         policy_loss = (action_probabilities * inside_term).sum(dim=1).mean()
         log_action_probabilities = torch.sum(log_action_probabilities * action_probabilities, dim=1)
         return policy_loss, log_action_probabilities
+
+    def calculate_entropy_tuning_loss(self, log_pi):
+        """Calculates the loss for the entropy temperature parameter. This is only relevant if self.automatic_entropy_tuning
+        is True."""
+        alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
+        return alpha_loss
+
+    def update_critic_parameters(self, critic_loss_1, critic_loss_2):
+        """Updates the parameters for both critics"""
+        self.take_optimisation_step(self.critic_optimizer, self.critic_local, critic_loss_1,
+                                    self.hyperparameters["Critic"]["gradient_clipping_norm"])
+        self.take_optimisation_step(self.critic_optimizer_2, self.critic_local_2, critic_loss_2,
+                                    self.hyperparameters["Critic"]["gradient_clipping_norm"])
+        self.soft_update_of_target_network(self.critic_local, self.critic_target,
+                                           self.hyperparameters["Critic"]["tau"])
+        self.soft_update_of_target_network(self.critic_local_2, self.critic_target_2,
+                                           self.hyperparameters["Critic"]["tau"])
+
+    def update_actor_parameters(self, actor_loss, alpha_loss):
+        """Updates the parameters for the actor and (if specified) the temperature parameter"""
+        self.take_optimisation_step(self.actor_optimizer, self.actor_local, actor_loss,
+                                    self.hyperparameters["Actor"]["gradient_clipping_norm"])
+        if alpha_loss is not None:
+            self.take_optimisation_step(self.alpha_optim, None, alpha_loss, None)
+            self.alpha = self.log_alpha.exp()
+
+    def eval(self):
+        return self.environment.evaluate(self.actor_local)
+

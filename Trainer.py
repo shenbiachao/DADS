@@ -1,13 +1,13 @@
 import copy
-import random
 import numpy as np
 from Utility_Functions import Logger
 
 
 class Trainer(object):
-    def __init__(self, config, agent):
+    def __init__(self, config, agent, environment):
         self.config = config
         self.agent = agent
+        self.environment = environment
         env_name = config.dataset_name
         self.logger = Logger("logs", prefix=env_name + "-" + "", print_to_terminal=True)
         self.logger.log_str("logging to {}".format(self.logger.log_path))
@@ -24,9 +24,8 @@ class Trainer(object):
             print("Run ", run + 1)
             agent_config = copy.deepcopy(self.config)
 
-            if self.config.randomise_random_seed: agent_config.seed = random.randint(0, 2**32 - 2)
             agent_config.hyperparameters = agent_config.hyperparameters[agent_group]
-            agent = self.agent(agent_config)
+            agent = self.agent(agent_config, self.environment)
             time_taken, auc_roc, auc_pr = agent.run_n_episodes(self.logger, run)
             auc_roc_list.append(auc_roc)
             auc_pr_list.append(auc_pr)

@@ -1,3 +1,5 @@
+import copy
+
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,9 +14,9 @@ from sklearn.ensemble import IsolationForest
 from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
 from sklearn.manifold import TSNE
 
-all_anomaly_classes = [[1, 2], [4, 6], [2, 3]]
-all_normal_classes = [[3], [2], [1]]
-all_classes = [[3, 1, 2], [2, 4, 6], [1, 2, 3]]
+all_anomaly_classes = [[1, 2], [4, 6], [2, 3], [2, 3, 4, 5, 6, 7]]
+all_normal_classes = [[3], [2], [1], [1]]
+all_classes = [[3, 1, 2], [2, 4, 6], [1, 2, 3], [1, 2, 3, 4, 5, 6, 7]]
 
 train_percentage = config.train_percentage
 known_anomaly_num = config.known_anomaly_num
@@ -28,7 +30,6 @@ strategy_distribution = config.strategy_distribution
 target_anomaly_classes = config.target_anomaly_classes
 refresh_interval = config.refresh_interval
 dataset_name = config.dataset_name
-normalization = config.normalization
 
 
 def load_data():
@@ -47,6 +48,12 @@ def load_data():
             source.iloc[:, :23] = (source.iloc[:, :23] - source.iloc[:, :23].min()) / (
                     source.iloc[:, :23].max() - source.iloc[:, :23].min())
         index = 2
+    elif dataset_name == 'shu':
+        source = pd.read_csv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/shuttle.csv"))
+        if normalization:
+            source.iloc[:, :9] = (source.iloc[:, :9] - source.iloc[:, :9].min()) / (
+                    source.iloc[:, :9].max() - source.iloc[:, :9].min())
+        index = 3
     else:
         assert 0, "Dataset not existed."
     target_anomaly_class = target_anomaly_classes[index]
@@ -103,8 +110,6 @@ class ad(gym.Env):
         self.current_data = self.dataset_unlabeled[self.current_index]
         self.current_class = "unlabeled"
 
-        self.net = None
-
         self.observation_space = spaces.Discrete(self.current_data.size()[0])
         self.action_space = spaces.Discrete(2)
         self.tot_steps = 0
@@ -121,9 +126,6 @@ class ad(gym.Env):
         self.current_class = 'unlabeled'
 
         return self.current_data
-
-    def refresh_net(self, net):
-        self.net = net
 
     def calculate_reward(self, action):
         if self.current_class == 'anomaly':
@@ -158,8 +160,7 @@ class ad(gym.Env):
         candidate_index = np.random.choice([i for i in range(len(self.dataset_unlabeled))], size=sample_num,
                                            replace=False)
         candidate = self.dataset_unlabeled[candidate_index]
-        feature = self.net.map(candidate)
-        score = -self.clf.score_samples(feature.detach().cpu().numpy())
+        score = -self.clf.score_samples(candidate.cpu())
         self.current_index = np.argmax(score)
         self.current_data = self.dataset_unlabeled[self.current_index]
 
@@ -188,9 +189,8 @@ class ad(gym.Env):
     def step(self, action):
         reward = self.calculate_reward(action)
         if self.tot_steps % refresh_interval == 0:
-            with torch.no_grad():
-                mapped = self.net.map(self.dataset_unlabeled).cpu()
-            self.clf.fit(mapped)
+            self.clf.fit(self.dataset_unlabeled.cpu())
+        self.dataset_unlabeled.to(config.device)
         self.tot_steps = self.tot_steps + 1
         self.refresh_dataset(action)
 
@@ -211,8 +211,8 @@ class ad(gym.Env):
                 break
         return self.current_data, reward, done, " "
 
-    def evaluate(self):
-        q_values = self.net(self.dataset_test)
+    def evaluate(self, net):
+        q_values = net(self.dataset_test)
         anomaly_score = q_values[:, 1]
         auc_roc = roc_auc_score(self.test_label, anomaly_score.cpu().detach())
         precision, recall, _thresholds = precision_recall_curve(self.test_label, anomaly_score.cpu().detach())
