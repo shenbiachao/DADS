@@ -1,18 +1,18 @@
 # Deep Anomaly Detection and Search
 
-Please copy the user dataset to the location specified in the following, then register environment ad in $\_\_$init__.py
+Please copy the user dataset to the location specified in the following, then register environment ad in __ init___.py
 
-gym             
-├── envs
-       ├── user
-              ├── data
-                      ├── annthyroid.csv
-                      ├── covertype.csv
-                      └── ......
-              ├── $\_ \_$init $ \_ \_$.py
-              └── anomaly_detection.py
-       ├──  $ \_ \_$init__.py (register here)
-       └── ......
+    gym             
+    ├── envs
+           ├── user
+                  ├── data
+                          ├── annthyroid.csv
+                          ├── covertype.csv
+                          └── ......
+                  ├── __init__.py
+                  └── anomaly_detection.py
+           ├──  __init__.py (register here)
+           └── ......
 
 
 
