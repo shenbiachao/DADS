@@ -1,3 +1,6 @@
+# coding=utf-8
+# Deep Anomaly Detection and Search
+
 import sys
 import gym
 from os.path import dirname, abspath

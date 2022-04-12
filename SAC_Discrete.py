@@ -8,23 +8,28 @@ from Utility_Functions import create_actor_distribution
 
 
 class SAC_Discrete(Base_Agent):
+    """ SAC agent inherited from Base_Agent
+    Include two critic networks and one actor network
+    """
     agent_name = "SAC"
+
     def __init__(self, config, environment):
         Base_Agent.__init__(self, config, environment)
         assert self.action_types == "DISCRETE", "Action types must be discrete. Use SAC instead for continuous actions"
-        assert self.config.hyperparameters["Actor"]["final_layer_activation"] == "Softmax", "Final actor layer must be softmax"
+        assert self.config.hyperparameters["Actor"][
+                   "final_layer_activation"] == "Softmax", "Final actor layer must be softmax"
         self.hyperparameters = config.hyperparameters
         self.critic_local = self.create_NN(input_dim=self.state_size, output_dim=self.action_size, key_to_use="Critic")
         self.critic_local_2 = self.create_NN(input_dim=self.state_size, output_dim=self.action_size,
-                                           key_to_use="Critic")
+                                             key_to_use="Critic")
         self.critic_optimizer = torch.optim.Adam(self.critic_local.parameters(),
                                                  lr=self.hyperparameters["Critic"]["learning_rate"], eps=1e-4)
         self.critic_optimizer_2 = torch.optim.Adam(self.critic_local_2.parameters(),
                                                    lr=self.hyperparameters["Critic"]["learning_rate"], eps=1e-4)
         self.critic_target = self.create_NN(input_dim=self.state_size, output_dim=self.action_size,
-                                           key_to_use="Critic")
-        self.critic_target_2 = self.create_NN(input_dim=self.state_size, output_dim=self.action_size,
                                             key_to_use="Critic")
+        self.critic_target_2 = self.create_NN(input_dim=self.state_size, output_dim=self.action_size,
+                                              key_to_use="Critic")
         Base_Agent.copy_model_over(self.critic_local, self.critic_target)
         Base_Agent.copy_model_over(self.critic_local_2, self.critic_target_2)
         self.memory = Replay_Buffer(self.hyperparameters["Critic"]["buffer_size"],
@@ -32,10 +37,10 @@ class SAC_Discrete(Base_Agent):
 
         self.actor_local = self.create_NN(input_dim=self.state_size, output_dim=self.action_size, key_to_use="Actor")
         self.actor_optimizer = torch.optim.Adam(self.actor_local.parameters(),
-                                          lr=self.hyperparameters["Actor"]["learning_rate"], eps=1e-4)
+                                                lr=self.hyperparameters["Actor"]["learning_rate"], eps=1e-4)
         self.automatic_entropy_tuning = self.hyperparameters["automatically_tune_entropy_hyperparameter"]
         if self.automatic_entropy_tuning:
-            # we set the max possible entropy as the target entropy
+            # We set the max possible entropy as the target entropy
             self.target_entropy = -np.log((1.0 / self.action_size)) * 0.98
             self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
             self.alpha = self.log_alpha.exp()
@@ -44,8 +49,11 @@ class SAC_Discrete(Base_Agent):
             self.alpha = self.hyperparameters["entropy_term_weight"]
 
     def produce_action_and_action_info(self, state):
-        """Given the state, produces an action, the probability of the action, the log probability of the action, and
-        the argmax action"""
+        """
+        @return action: selected action
+        @return (action_probabilities, log_action_probabilities): distribution of action and log of itself
+        @return max_probability_action: action with maxmimum probablity
+        """
         action_probabilities = self.actor_local(state)
         max_probability_action = torch.argmax(action_probabilities, dim=-1)
         action_distribution = create_actor_distribution(self.action_types, action_probabilities, self.action_size)
@@ -57,11 +65,10 @@ class SAC_Discrete(Base_Agent):
         return action, (action_probabilities, log_action_probabilities), max_probability_action
 
     def reset_game(self):
-        """Resets the game information so we are ready to play a new episode"""
         Base_Agent.reset_game(self)
 
     def step(self):
-        """Runs an episode on the game, saving the experience and running a learning step if appropriate"""
+        """ Run an episode on the game, saving the experience and running a learning step if appropriate"""
         self.episode_step_number_val = 0
         while not self.done:
             self.episode_step_number_val += 1
@@ -77,21 +84,24 @@ class SAC_Discrete(Base_Agent):
         self.episode_number += 1
 
     def pick_action(self, state=None):
-        """Picks an action using one of three methods: 1) Randomly if we haven't passed a certain number of steps,
-         2) Using the actor in evaluation mode if eval_ep is True  3) Using the actor in training mode if eval_ep is False.
-         The difference between evaluation and training mode is that training mode does more exploration"""
+        """ Pick an action using one of two methods:
+        1) Randomly if we haven't passed a certain number of steps
+        2) Using the actor
+        """
         if state is None: state = self.state
         if self.global_step_number < self.hyperparameters["min_steps_before_learning"]:
             action = self.environment.action_space.sample()
-            # print("Picking random action ", action)
         else:
             action = self.actor_pick_action(state=state)
         return action
 
     def actor_pick_action(self, state=None, eval=False):
-        """Uses actor to pick an action in one of two ways: 1) If eval = False and we aren't in eval mode then it picks
-        an action that has partly been randomly sampled 2) If eval = True then we pick the action that comes directly
-        from the network and so did not involve any random sampling"""
+        """ Use actor to pick an action in one of two ways:
+        1) If eval = False and we aren't in eval mode then it picks
+        an action that has partly been randomly sampled
+        2) If eval = True then we pick the action that comes directly
+        from the network and so did not involve any random sampling
+        """
         if state is None: state = self.state
         if len(state.shape) == 1: state = state.unsqueeze(0)
         if eval == False:
@@ -103,14 +113,15 @@ class SAC_Discrete(Base_Agent):
         return action[0]
 
     def time_for_critic_and_actor_to_learn(self):
-        """Returns boolean indicating whether there are enough experiences to learn from and it is time to learn for the
-        actor and critic"""
+        """ Return boolean indicating whether there are enough experiences to learn from, and
+        it is time to learn for the actor and critic
+        """
         return self.global_step_number > self.hyperparameters["min_steps_before_learning"] and \
                self.enough_experiences_to_learn_from() and self.global_step_number % self.hyperparameters[
                    "update_every_n_steps"] == 0
 
     def learn(self):
-        """Runs a learning iteration for the actor, both critics and (if specified) the temperature parameter"""
+        """ Run a learning iteration for the actor, both critics and (if specified) the temperature parameter"""
         state_batch, action_batch, reward_batch, next_state_batch, mask_batch = self.sample_experiences()
         qf1_loss, qf2_loss = self.calculate_critic_losses(state_batch, action_batch, reward_batch, next_state_batch,
                                                           mask_batch)
@@ -127,15 +138,19 @@ class SAC_Discrete(Base_Agent):
         return self.memory.sample()
 
     def calculate_critic_losses(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch):
-        """Calculates the losses for the two critics. This is the ordinary Q-learning loss except the additional entropy
-         term is taken into account"""
+        """ Calculate the losses for the two critics.
+        This is the ordinary Q-learning loss except the additional entropy term is taken into account
+        """
         with torch.no_grad():
-            next_state_action, (action_probabilities, log_action_probabilities), _ = self.produce_action_and_action_info(next_state_batch)
+            next_state_action, (
+            action_probabilities, log_action_probabilities), _ = self.produce_action_and_action_info(next_state_batch)
             qf1_next_target = self.critic_target(next_state_batch)
             qf2_next_target = self.critic_target_2(next_state_batch)
-            min_qf_next_target = action_probabilities * (torch.min(qf1_next_target, qf2_next_target) - self.alpha * log_action_probabilities)
+            min_qf_next_target = action_probabilities * (
+                        torch.min(qf1_next_target, qf2_next_target) - self.alpha * log_action_probabilities)
             min_qf_next_target = min_qf_next_target.sum(dim=1).unsqueeze(-1)
-            next_q_value = reward_batch + (1.0 - mask_batch) * self.hyperparameters["discount_rate"] * (min_qf_next_target)
+            next_q_value = reward_batch + (1.0 - mask_batch) * self.hyperparameters["discount_rate"] * (
+                min_qf_next_target)
 
         qf1 = self.critic_local(state_batch).gather(1, action_batch.long())
         qf2 = self.critic_local_2(state_batch).gather(1, action_batch.long())
@@ -144,7 +159,9 @@ class SAC_Discrete(Base_Agent):
         return qf1_loss, qf2_loss
 
     def calculate_actor_loss(self, state_batch):
-        """Calculates the loss for the actor. This loss includes the additional entropy term"""
+        """Calculate the loss for the actor.
+        This loss includes the additional entropy term
+        """
         action, (action_probabilities, log_action_probabilities), _ = self.produce_action_and_action_info(state_batch)
         qf1_pi = self.critic_local(state_batch)
         qf2_pi = self.critic_local_2(state_batch)
@@ -155,13 +172,14 @@ class SAC_Discrete(Base_Agent):
         return policy_loss, log_action_probabilities
 
     def calculate_entropy_tuning_loss(self, log_pi):
-        """Calculates the loss for the entropy temperature parameter. This is only relevant if self.automatic_entropy_tuning
-        is True."""
+        """ Calculate the loss for the entropy temperature parameter.
+        This is only relevant if self.automatic_entropy_tuning is True
+        """
         alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
         return alpha_loss
 
     def update_critic_parameters(self, critic_loss_1, critic_loss_2):
-        """Updates the parameters for both critics"""
+        """ Update the parameters for both critics"""
         self.take_optimisation_step(self.critic_optimizer, self.critic_local, critic_loss_1,
                                     self.hyperparameters["Critic"]["gradient_clipping_norm"])
         self.take_optimisation_step(self.critic_optimizer_2, self.critic_local_2, critic_loss_2,
@@ -172,7 +190,7 @@ class SAC_Discrete(Base_Agent):
                                            self.hyperparameters["Critic"]["tau"])
 
     def update_actor_parameters(self, actor_loss, alpha_loss):
-        """Updates the parameters for the actor and (if specified) the temperature parameter"""
+        """Update the parameters for the actor and (if specified) the temperature parameter"""
         self.take_optimisation_step(self.actor_optimizer, self.actor_local, actor_loss,
                                     self.hyperparameters["Actor"]["gradient_clipping_norm"])
         if alpha_loss is not None:
@@ -180,5 +198,5 @@ class SAC_Discrete(Base_Agent):
             self.alpha = self.log_alpha.exp()
 
     def eval(self):
+        """ Evaluate the actor"""
         return self.environment.evaluate(self.actor_local)
-
