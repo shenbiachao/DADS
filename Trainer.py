@@ -1,9 +1,15 @@
 import copy
 import numpy as np
 from Utility_Functions import Logger
+from Utility_Functions import set_random_seeds
 
 
 class Trainer(object):
+    """ Train the agent
+    @property config: configuration of training
+    @property agent: SAC agent to be trained
+    @property environment: ad defined in anomaly_detection.py
+    """
     def __init__(self, config, agent, environment):
         self.config = config
         self.agent = agent
@@ -14,7 +20,7 @@ class Trainer(object):
         self.logger.log_str(config.__dict__)
 
     def run_game_for_agent(self):
-        """Runs a set of games for a given agent, saving the results in self.results"""
+        """Run the training process several times to calculate the mean and variance of AUC_PR and AUC_ROC"""
         agent_group = "Actor_Critic_Agents"
         agent_round = 1
         auc_roc_list = []
@@ -22,11 +28,13 @@ class Trainer(object):
         time_list = []
         for run in range(self.config.runs_per_agent):
             print("Run ", run + 1)
+            set_random_seeds(self.config.seeds[run])  # set random seed before each training
             agent_config = copy.deepcopy(self.config)
-
             agent_config.hyperparameters = agent_config.hyperparameters[agent_group]
             agent = self.agent(agent_config, self.environment)
-            time_taken, auc_roc, auc_pr = agent.run_n_episodes(self.logger, run)
+
+            time_taken, auc_roc, auc_pr = agent.run_n_episodes(self.logger, run)   # run a single training process
+
             auc_roc_list.append(auc_roc)
             auc_pr_list.append(auc_pr)
             time_list.append(time_taken)

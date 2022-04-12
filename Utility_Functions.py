@@ -2,7 +2,6 @@ import numpy as np
 from abc import ABCMeta
 import os
 from datetime import datetime
-import json
 from tensorboardX import SummaryWriter
 import torch
 from torch.distributions import Categorical, normal
@@ -10,15 +9,15 @@ from collections import namedtuple, deque
 import random
 import gym
 
+
 def abstract(cls):
     return ABCMeta(cls.__name__, cls.__bases__, dict(cls.__dict__))
 
 
 def create_actor_distribution(action_types, actor_output, action_size):
-    """Creates a distribution that the actor can then use to randomly draw actions"""
     if action_types == "DISCRETE":
         assert actor_output.size()[1] == action_size, "Actor output the wrong size"
-        action_distribution = Categorical(actor_output)  # this creates a distribution to sample from
+        action_distribution = Categorical(actor_output)  # This creates a distribution to sample from
     else:
         assert actor_output.size()[1] == action_size * 2, "Actor output the wrong size"
         means = actor_output[:, :action_size].squeeze(0)
@@ -32,7 +31,7 @@ def create_actor_distribution(action_types, actor_output, action_size):
 
 
 class Logger():
-    def __init__(self, log_path, prefix="", warning_level=3, print_to_terminal=True):
+    def __init__(self, log_path, prefix="", print_to_terminal=True):
         unique_path = self.make_simple_log_path(prefix)
         log_path = os.path.join(log_path, unique_path)
         self.log_path = log_path
@@ -41,7 +40,6 @@ class Logger():
         self.tb_writer = SummaryWriter(log_path)
         self.log_file_path = os.path.join(log_path, "output.txt")
         self.print_to_terminal = print_to_terminal
-        self.warning_level = warning_level
 
     def make_simple_log_path(self, prefix):
         now = datetime.now()
@@ -53,9 +51,7 @@ class Logger():
     def log_dir(self):
         return self.log_path
 
-    def log_str(self, content, print_to_terminal=False, level=4):
-        if level < self.warning_level:
-            return
+    def log_str(self, content, print_to_terminal=False):
         now = datetime.now()
         time_str = now.strftime("%Y-%m-%d %H:%M:%S")
         if print_to_terminal:
@@ -64,28 +60,19 @@ class Logger():
             f.write("{}:\t{}\n".format(time_str, content))
 
     def log_var(self, name, val, ite):
+        """ log variable
+        @param name: variable name
+        @param val: value of variable
+        @param ite: current iteration/step in training
+        """
         self.tb_writer.add_scalar(name, val, ite)
-
-    def log_str_object(self, name: str, log_dict: dict = None, log_str: str = None):
-        if log_dict is not None:
-            log_str = json.dumps(log_dict, indent=4)
-        elif log_str is not None:
-            pass
-        else:
-            assert 0
-        if name[-4:] != ".txt":
-            name += ".txt"
-        target_path = os.path.join(self.log_path, name)
-        with open(target_path, 'w+') as f:
-            f.write(log_str)
-        self.log_str("saved {} to {}".format(name, target_path))
 
 
 class Replay_Buffer(object):
-    """Replay buffer to store past experiences that the agent can then use for training data"""
-
+    """
+    Replay buffer to store past experiences that the agent can then use for training data
+    """
     def __init__(self, buffer_size, batch_size, device=None):
-
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
         self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
@@ -95,7 +82,6 @@ class Replay_Buffer(object):
             self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def add_experience(self, states, actions, rewards, next_states, dones):
-        """Adds experience(s) into the replay buffer"""
         states, next_states = states.cpu(), next_states.cpu()
         if type(dones) == list:
             assert type(dones[0]) != list, "A done shouldn't be a list"
@@ -108,7 +94,6 @@ class Replay_Buffer(object):
             self.memory.append(experience)
 
     def sample(self, num_experiences=None, separate_out_data_types=True):
-        """Draws a random sample of experience from the replay buffer"""
         experiences = self.pick_experiences(num_experiences)
         if separate_out_data_types:
             states, actions, rewards, next_states, dones = self.separate_out_data_types(experiences)
@@ -117,7 +102,6 @@ class Replay_Buffer(object):
             return experiences
 
     def separate_out_data_types(self, experiences):
-        """Puts the sampled experience into the correct format for a PyTorch neural network"""
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(self.device)
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).float().to(self.device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
@@ -139,7 +123,6 @@ class Replay_Buffer(object):
 
 
 def set_random_seeds(random_seed):
-    """Sets all possible random seeds so results can be reproduced"""
     os.environ['PYTHONHASHSEED'] = str(random_seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False

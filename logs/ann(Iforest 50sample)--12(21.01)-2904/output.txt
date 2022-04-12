@@ -1,0 +1,115 @@
+2022-04-12 21:01:33:	logging to logs\ann--12(21.01)-2904
+2022-04-12 21:01:33:	{'train_percentage': 0.8, 'known_anomaly_num': 60, 'device': 'cuda', 'sample_num': 50, 'max_trajectory': 5000, 'check_num': 4, 'reward_list': [1, -1, 0.5], 'strategy_distribution': [0.3, 0.3, 0.4], 'sampling_method_distribution': [1, 0, 0, 0, 0, 0], 'target_anomaly_classes': [1, 4, 2, 2], 'refresh_interval': 100, 'dataset_name': 'ann', 'normalization': True, 'num_episodes_to_run': 5, 'standard_deviation_results': 1.0, 'runs_per_agent': 10, 'plot_map': False, 'seeds': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 'hyperparameters': {'Actor_Critic_Agents': {'Actor': {'learning_rate': 0.005, 'linear_hidden_units': [16], 'final_layer_activation': 'Softmax', 'batch_norm': False, 'tau': 0.2, 'gradient_clipping_norm': 5, 'initialiser': 'Xavier'}, 'Critic': {'learning_rate': 0.005, 'linear_hidden_units': [16], 'final_layer_activation': None, 'batch_norm': False, 'buffer_size': 10000, 'tau': 0.2, 'gradient_clipping_norm': 5, 'initialiser': 'Xavier'}, 'min_steps_before_learning': 1000, 'batch_size': 64, 'update_every_n_steps': 64, 'learning_updates_per_learning_session': 64, 'automatically_tune_entropy_hyperparameter': True, 'entropy_term_weight': None, 'discount_rate': 0.99}}}
+2022-04-12 21:03:31:	Episode 1: auc_roc 0.845 auc_pr 0.640
+anomaly: 95 temp: 330 unlabeled: 2592
+2022-04-12 21:05:41:	Episode 2: auc_roc 0.868 auc_pr 0.648
+anomaly: 113 temp: 310 unlabeled: 2594
+2022-04-12 21:07:45:	Episode 3: auc_roc 0.878 auc_pr 0.663
+anomaly: 121 temp: 273 unlabeled: 2623
+2022-04-12 21:09:54:	Episode 4: auc_roc 0.857 auc_pr 0.650
+anomaly: 124 temp: 350 unlabeled: 2543
+2022-04-12 21:12:02:	Episode 5: auc_roc 0.844 auc_pr 0.634
+anomaly: 133 temp: 320 unlabeled: 2564
+2022-04-12 21:12:02:	Time taken: 629.6996531486511
+2022-04-12 21:13:59:	Episode 1: auc_roc 0.813 auc_pr 0.561
+anomaly: 114 temp: 323 unlabeled: 2580
+2022-04-12 21:16:07:	Episode 2: auc_roc 0.807 auc_pr 0.561
+anomaly: 115 temp: 288 unlabeled: 2614
+2022-04-12 21:18:16:	Episode 3: auc_roc 0.829 auc_pr 0.585
+anomaly: 127 temp: 364 unlabeled: 2526
+2022-04-12 21:20:42:	Episode 4: auc_roc 0.817 auc_pr 0.564
+anomaly: 121 temp: 345 unlabeled: 2551
+2022-04-12 21:23:16:	Episode 5: auc_roc 0.846 auc_pr 0.577
+anomaly: 114 temp: 359 unlabeled: 2544
+2022-04-12 21:23:16:	Time taken: 673.9625992774963
+2022-04-12 21:25:43:	Episode 1: auc_roc 0.893 auc_pr 0.651
+anomaly: 129 temp: 311 unlabeled: 2577
+2022-04-12 21:28:23:	Episode 2: auc_roc 0.864 auc_pr 0.597
+anomaly: 130 temp: 231 unlabeled: 2656
+2022-04-12 21:30:55:	Episode 3: auc_roc 0.813 auc_pr 0.562
+anomaly: 124 temp: 314 unlabeled: 2579
+2022-04-12 21:33:27:	Episode 4: auc_roc 0.838 auc_pr 0.596
+anomaly: 117 temp: 327 unlabeled: 2573
+2022-04-12 21:36:07:	Episode 5: auc_roc 0.824 auc_pr 0.594
+anomaly: 110 temp: 359 unlabeled: 2548
+2022-04-12 21:36:08:	Time taken: 771.1008777618408
+2022-04-12 21:38:39:	Episode 1: auc_roc 0.815 auc_pr 0.562
+anomaly: 124 temp: 307 unlabeled: 2586
+2022-04-12 21:41:24:	Episode 2: auc_roc 0.815 auc_pr 0.555
+anomaly: 124 temp: 331 unlabeled: 2562
+2022-04-12 21:43:55:	Episode 3: auc_roc 0.827 auc_pr 0.581
+anomaly: 128 temp: 316 unlabeled: 2573
+2022-04-12 21:46:27:	Episode 4: auc_roc 0.838 auc_pr 0.593
+anomaly: 121 temp: 349 unlabeled: 2547
+2022-04-12 21:48:58:	Episode 5: auc_roc 0.889 auc_pr 0.631
+anomaly: 127 temp: 339 unlabeled: 2551
+2022-04-12 21:48:58:	Time taken: 770.180326461792
+2022-04-12 21:51:19:	Episode 1: auc_roc 0.868 auc_pr 0.645
+anomaly: 107 temp: 361 unlabeled: 2549
+2022-04-12 21:53:48:	Episode 2: auc_roc 0.906 auc_pr 0.695
+anomaly: 107 temp: 258 unlabeled: 2652
+2022-04-12 21:56:20:	Episode 3: auc_roc 0.951 auc_pr 0.737
+anomaly: 117 temp: 261 unlabeled: 2639
+2022-04-12 21:58:53:	Episode 4: auc_roc 0.949 auc_pr 0.771
+anomaly: 112 temp: 301 unlabeled: 2604
+2022-04-12 22:01:22:	Episode 5: auc_roc 0.951 auc_pr 0.783
+anomaly: 114 temp: 365 unlabeled: 2538
+2022-04-12 22:01:22:	Time taken: 744.5359349250793
+2022-04-12 22:03:40:	Episode 1: auc_roc 0.829 auc_pr 0.587
+anomaly: 127 temp: 280 unlabeled: 2610
+2022-04-12 22:06:09:	Episode 2: auc_roc 0.845 auc_pr 0.622
+anomaly: 132 temp: 298 unlabeled: 2587
+2022-04-12 22:08:38:	Episode 3: auc_roc 0.866 auc_pr 0.596
+anomaly: 129 temp: 320 unlabeled: 2568
+2022-04-12 22:11:08:	Episode 4: auc_roc 0.850 auc_pr 0.599
+anomaly: 121 temp: 310 unlabeled: 2586
+2022-04-12 22:13:37:	Episode 5: auc_roc 0.834 auc_pr 0.595
+anomaly: 122 temp: 318 unlabeled: 2577
+2022-04-12 22:13:37:	Time taken: 734.9724566936493
+2022-04-12 22:15:57:	Episode 1: auc_roc 0.871 auc_pr 0.657
+anomaly: 115 temp: 323 unlabeled: 2579
+2022-04-12 22:18:32:	Episode 2: auc_roc 0.865 auc_pr 0.646
+anomaly: 114 temp: 309 unlabeled: 2594
+2022-04-12 22:21:07:	Episode 3: auc_roc 0.878 auc_pr 0.657
+anomaly: 113 temp: 345 unlabeled: 2559
+2022-04-12 22:23:36:	Episode 4: auc_roc 0.856 auc_pr 0.613
+anomaly: 120 temp: 309 unlabeled: 2588
+2022-04-12 22:26:07:	Episode 5: auc_roc 0.851 auc_pr 0.616
+anomaly: 110 temp: 333 unlabeled: 2574
+2022-04-12 22:26:07:	Time taken: 750.0272417068481
+2022-04-12 22:28:30:	Episode 1: auc_roc 0.877 auc_pr 0.659
+anomaly: 113 temp: 341 unlabeled: 2563
+2022-04-12 22:30:58:	Episode 2: auc_roc 0.852 auc_pr 0.603
+anomaly: 115 temp: 278 unlabeled: 2624
+2022-04-12 22:33:26:	Episode 3: auc_roc 0.839 auc_pr 0.590
+anomaly: 117 temp: 305 unlabeled: 2595
+2022-04-12 22:35:57:	Episode 4: auc_roc 0.833 auc_pr 0.600
+anomaly: 125 temp: 277 unlabeled: 2615
+2022-04-12 22:38:26:	Episode 5: auc_roc 0.844 auc_pr 0.571
+anomaly: 111 temp: 318 unlabeled: 2588
+2022-04-12 22:38:26:	Time taken: 738.9203019142151
+2022-04-12 22:40:43:	Episode 1: auc_roc 0.809 auc_pr 0.522
+anomaly: 119 temp: 303 unlabeled: 2595
+2022-04-12 22:43:11:	Episode 2: auc_roc 0.799 auc_pr 0.570
+anomaly: 123 temp: 292 unlabeled: 2602
+2022-04-12 22:45:38:	Episode 3: auc_roc 0.832 auc_pr 0.595
+anomaly: 121 temp: 281 unlabeled: 2615
+2022-04-12 22:48:09:	Episode 4: auc_roc 0.826 auc_pr 0.583
+anomaly: 105 temp: 358 unlabeled: 2554
+2022-04-12 22:50:45:	Episode 5: auc_roc 0.841 auc_pr 0.568
+anomaly: 121 temp: 364 unlabeled: 2532
+2022-04-12 22:50:45:	Time taken: 738.2396755218506
+2022-04-12 22:53:07:	Episode 1: auc_roc 0.812 auc_pr 0.620
+anomaly: 133 temp: 294 unlabeled: 2590
+2022-04-12 22:55:38:	Episode 2: auc_roc 0.824 auc_pr 0.607
+anomaly: 117 temp: 299 unlabeled: 2601
+2022-04-12 22:58:04:	Episode 3: auc_roc 0.827 auc_pr 0.583
+anomaly: 117 temp: 311 unlabeled: 2589
+2022-04-12 23:00:27:	Episode 4: auc_roc 0.821 auc_pr 0.591
+anomaly: 127 temp: 264 unlabeled: 2626
+2022-04-12 23:02:39:	Episode 5: auc_roc 0.817 auc_pr 0.588
+anomaly: 121 temp: 323 unlabeled: 2573
+2022-04-12 23:02:39:	Time taken: 714.9151091575623
+2022-04-12 23:02:39:	auc_roc: mean 0.8541512231282432, variance 0.001385639292462048
+2022-04-12 23:02:39:	auc_pr: mean 0.6155996984802542, variance 0.0035956822541969033
+2022-04-12 23:02:39:	time: mean 726.6554176568985, variance 1740.4355445882716
