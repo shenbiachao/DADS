@@ -1,6 +1,6 @@
 # Deep Anomaly Detection and Search
 
-Please copy the user dataset to the location specified in the following, then register environment ad in __ init___.py
+Please copy the user dataset to the location specified in the following, then register environment ad in __ init__.py
 
     gym             
     ├── envs
@@ -29,5 +29,7 @@ python main.py
 
 
 All configurations are listed in config.py
+
 To change the dataset, please refer to parameter "dataset_name"
+
 To specify other configurations, please see notations in code for detail

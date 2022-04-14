@@ -52,6 +52,7 @@ sampling_method_distribution = config.sampling_method_distribution
 known_anomaly_classes = config.known_anomaly_classes
 refresh_interval = config.refresh_interval
 dataset_name = config.dataset_name
+normalization = config.normalization
 
 def load_data():
     """ Load data
@@ -167,11 +168,14 @@ class ad(gym.Env):
     def unsupervised_index(self, type_index, data):
         """ return anomaly index of a data using one of six unsupervised method defined in __init__
         the returned value is normalized to range [0, 1]
-        @param type_index: the index of unsupervised detecto, if type_index=-1, random sampling method will be applied
+        @param type_index: the index of unsupervised detecto, if type_index>=len(self.clf_list), random sampling method will be applied
         @param data: data needs to be calculated, both single data or multiple data is acceptable
         """
-        if type_index == -1:
-            return random.random()
+        if type_index >= len(self.clf_list):
+            if len(data.shape) == 1:
+                return random.random()
+            else:
+                return [random.random() for i in len(data)]
 
         clf = self.clf_list[type_index]
         if len(data.shape) == 1:

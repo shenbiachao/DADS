@@ -10,9 +10,9 @@ check_num = 4   # threshold of confidence
 reward_list = [1, -1, 0.5]   # rewards used in calculating reward
 dataset_name = 'ann'
 strategy_distribution = [0.3, 0.3, 0.4]   # probability distribution used to choose sampling strategy
-sampling_method_distribution = [1, 0, 0, 0, 0, 0]   # probability distribution used to choose unsupervised method
+sampling_method_distribution = [0, 0, 0, 0, 0, 1]   # probability distribution used to choose unsupervised method
 known_anomaly_classes = [1, 4, 2, 2]   # class id of the known anomaly data
-refresh_interval = 100   # refresh interval of unsupervised detection method
+refresh_interval = 500   # refresh interval of unsupervised detection method
 normalization = True   # whether normalize the data
 
 
