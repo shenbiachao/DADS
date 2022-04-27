@@ -5,6 +5,9 @@ import numpy as np
 from Base_Agent import Base_Agent
 from Utility_Functions import Replay_Buffer
 from Utility_Functions import create_actor_distribution
+from sklearn.metrics import confusion_matrix
+from torch.utils.data import TensorDataset
+from torch.utils.data import DataLoader
 
 
 class SAC_Discrete(Base_Agent):
@@ -48,6 +51,32 @@ class SAC_Discrete(Base_Agent):
         else:
             self.alpha = self.hyperparameters["entropy_term_weight"]
 
+        # self.pretrain()
+
+    def alpha_beta(self):
+        q_values = self.actor_local(self.environment.dataset_test)
+        _, action_indices = torch.max(q_values, dim=1)
+        matrix = confusion_matrix(self.environment.test_label, action_indices.cpu())
+        alpha = matrix[0][1] / (matrix[0][0] + matrix[0][1])
+        beta = matrix[1][1] / (matrix[1][0] + matrix[1][1])
+        return alpha, beta
+
+    def pretrain(self):
+        pseudo_label = torch.tensor([0] * len(self.environment.dataset_anomaly) + [1] * len(self.environment.dataset_anomaly))
+        pretrain_dataset = torch.cat([self.environment.dataset_unlabeled[0:len(self.environment.dataset_anomaly)], self.environment.dataset_anomaly])
+        loader = DataLoader(dataset=TensorDataset(pretrain_dataset, pseudo_label), batch_size=64, shuffle=True)
+
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(self.actor_local.parameters())
+        for iter in range(50):
+            for i, (x, y) in enumerate(loader):
+                optimizer.zero_grad()
+                outputs = self.actor_local(x).cpu()
+                loss = criterion(outputs, y)
+                loss.backward()
+                optimizer.step()
+        print("Alpha: ", self.alpha_beta()[0], "\nBeta: ", self.alpha_beta()[1])
+
     def produce_action_and_action_info(self, state):
         """
         @return action: selected action
@@ -69,16 +98,13 @@ class SAC_Discrete(Base_Agent):
 
     def step(self):
         """ Run an episode on the game, saving the experience and running a learning step if appropriate"""
-        self.episode_step_number_val = 0
         while not self.done:
-            self.episode_step_number_val += 1
             self.action = self.pick_action()
             self.conduct_action(self.action)
             if self.time_for_critic_and_actor_to_learn():
                 for _ in range(self.hyperparameters["learning_updates_per_learning_session"]):
                     self.learn()
-            mask = False if self.episode_step_number_val >= self.environment._max_episode_steps else self.done
-            self.save_experience(experience=(self.state, self.action, self.reward, self.next_state, mask))
+            self.save_experience(experience=(self.state, self.action, self.reward, self.next_state, self.done))
             self.state = self.next_state
             self.global_step_number += 1
         self.episode_number += 1

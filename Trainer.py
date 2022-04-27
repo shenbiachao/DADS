@@ -1,7 +1,6 @@
 import copy
 import numpy as np
 from Utility_Functions import Logger
-from Utility_Functions import set_random_seeds
 
 
 class Trainer(object):
@@ -28,7 +27,6 @@ class Trainer(object):
         time_list = []
         for run in range(self.config.runs_per_agent):
             print("Run ", run + 1)
-            set_random_seeds(self.config.seeds[run])  # set random seed before each training
             agent_config = copy.deepcopy(self.config)
             agent_config.hyperparameters = agent_config.hyperparameters[agent_group]
             agent = self.agent(agent_config, self.environment)

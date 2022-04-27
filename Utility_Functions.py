@@ -7,7 +7,6 @@ import torch
 from torch.distributions import Categorical, normal
 from collections import namedtuple, deque
 import random
-import gym
 
 
 def abstract(cls):
@@ -127,11 +126,22 @@ def set_random_seeds(random_seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     torch.manual_seed(random_seed)
-    # tf.set_random_seed(random_seed)
     random.seed(random_seed)
     np.random.seed(random_seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(random_seed)
         torch.cuda.manual_seed(random_seed)
-    if hasattr(gym.spaces, 'prng'):
-        gym.spaces.prng.seed(random_seed)
+
+
+class RSAMPLE:
+    def __init__(self):
+        pass
+
+    def fit(self, data):
+        pass
+
+    def predict_proba(self, data):
+        if len(data.shape) == 1:
+            return [[0, random.random()]]
+        else:
+            return [[0, random.random()] for i in range(data.shape[0])]
